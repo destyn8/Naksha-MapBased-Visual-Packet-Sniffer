@@ -18,11 +18,12 @@ def retrieveCoords(srcIP,dstIP):
 		srcCoords = publicIP
 		dstResponse = requests.get(f"https://geolocation-db.com/json/{str(dstIP)}&position=true").json()
 		dstCoords = [dstResponse['latitude'],dstResponse['longitude']]	
+		location = [srcCoords,dstCoords]
 	elif dstIP == interProt or dstIP == gateWay:
 		dstCoords = publicIP
 		srcResponse = requests.get(f"https://geolocation-db.com/json/{str(srcIP)}&position=true").json()
 		srcCoords = [srcResponse['latitude'],srcResponse['longitude']]	
-	location = [srcCoords,dstCoords]
+		location = [srcCoords,dstCoords]
 	return location
 def extractIP(packet):
 	if IP in packet:
@@ -38,5 +39,4 @@ interProt = get_if_addr("wlp4s0")
 gateWay = conf.route.route("0.0.0.0")[2]
 publicIP = getPublicIP()
 sockIO = SocketIO('localhost',5000)
-print(publicIP)
 sniff(prn=extractIP,store=0)
