@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Map</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script type="text/javascript">
+        var socket = io();
+        socket.on('newPacket',function(data){
+            console.log('Message: ',data);
+            console.log(data[0][0]+data[0][1]);
+        });
+    </script>
+</head>
+<body>
+    <div id="map" style="width: 100%; height: 600px;"></div>
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        var socket = io('http://localhost:5000');
+        socket.on('update_map', function(data) {
+            var src = data.src_coords;
+            var dst = data.dst_coords;
+            var polyline = L.polyline([src, dst], {color: 'red'}).addTo(map);
+            map.fitBounds(polyline.getBounds());
+        });
+    </script>
+</body>
+</html>
