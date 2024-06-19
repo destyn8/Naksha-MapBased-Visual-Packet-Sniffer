@@ -7,20 +7,92 @@
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-curve/leaflet.curve.js"></script>
     <script type="text/javascript">
-
     </script>
 </head>
 <body>
-    <div id="map" style="width: 100%; height: 600px;"></div>
+    <div id="map" style="width: 100%;height: 600px;"></div>
     <script>
+        function drawAnimate(source,destination){
+           var midpoint = [
+                (source[0] + destination[0]) / 2,
+                (source[1] + destination[1]) / 2 - 1.6  // Adjust this value to control the curvature
+            ];
+            var path = L.curve(
+                [
+                    'M', source,
+                    'Q', midpoint, destination
+                ],
+                {
+                    color: 'blue',
+                    weight: 5,
+                    opacity: 0.5
+                }
+            ).addTo(map);
+            var pathElement = path._path;
+
+            var keyframes = [
+                { strokeDashoffset: pathElement.getTotalLength() },
+                { strokeDashoffset: 0 }
+            ];
+
+            var options = {
+                duration: 800,
+                iterations: 1,
+                easing: 'ease-in'
+            };
+
+            pathElement.style.strokeDasharray = pathElement.getTotalLength();
+            pathElement.animate(keyframes, options);
+        }
+        var markers = new Set();
         var socket = io();
+        var globInterProt;
+        var globPacketLen;
+        var globPacketProt;
+        var globPacketTTL;
+        var globPacketHome;
+        socket.on('interProt',function(interProt){
+        });
+        socket.on('packetLen',function(packetLen){
+        });
+        socket.on('packetProt',function(packetProt){
+        });
+        socket.on('packetTTL',function(packetTTL){
+        });
+        socket.once('packetHome',function(packetHome){
+            globPacketHome = packetHome;
+            L.marker(globPacketHome).addTo(map);
+            markers.add(globPacketHome[0]+','+globPacketHome[1])
+            console.log("PACKET HOME"+globPacketHome);            
+        });
         socket.on('newPacket',function(data){
             console.log('Message: ',data);
-            var src = data[0];
-            var dst = data[1];
-            console.log(src,dst)
-            var polyline = L.polyline([src, dst], {color: 'red'}).addTo(map);
+            var source = data[0];
+            var destination = data[1];
+            var home = (globPacketHome[0] == source[0] && globPacketHome[1] == source[1])?0:1;
+            console.log("home: "+home);
+            //0: source is home. 1: destination is home
+            if(home == 0){
+                if(!(markers.has(destination[0]+','+destination[1]))){
+                    L.marker([destination[0],destination[1]]).addTo(map);
+                    markers.add(destination[0]+','+destination[1]);                  
+                    console.log("NEW DEST MARKER ADDED");                    
+                    drawAnimate(source,destination);
+                }                
+            }
+            else if(home == 1){
+                if(!(markers.has(source[0]+','+source[1]))){
+                    L.marker([source[0],source[1]]).addTo(map);
+                    markers.add(source[0]+','+source[1]);                  
+                    console.log("NEW SRC MARKER ADDED");                   
+                    drawAnimate(source,destination);                    
+                }
+            }
+            else{
+                console.log("NOTHING");
+            }
         });
         var map = L.map('map').setView([0, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
